@@ -1,0 +1,6 @@
+C:\FSTravel\Learning\sara\Core\Core\obj\Debug\Core.csproj.AssemblyReference.cache
+C:\FSTravel\Learning\sara\Core\Core\obj\Debug\Core.csproj.CoreCompileInputs.cache
+C:\FSTravel\Learning\sara\Core\Core\bin\Debug\Core.dll
+C:\FSTravel\Learning\sara\Core\Core\bin\Debug\Core.pdb
+C:\FSTravel\Learning\sara\Core\Core\obj\Debug\Core.dll
+C:\FSTravel\Learning\sara\Core\Core\obj\Debug\Core.pdb
