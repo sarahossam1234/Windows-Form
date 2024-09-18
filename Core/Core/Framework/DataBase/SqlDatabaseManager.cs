@@ -1,63 +1,192 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.SqlClient;
+using System.IO;
 
-namespace Core.Framework.DataBase
+public class SqlDatabaseManager : IDisposable
 {
-    public class SqlDatabaseManager
+    private static SqlDatabaseManager _instance = null;
+    private static readonly object _lock = new object();
+    private SqlConnection _connection;
+    private bool _disposed = false;
+
+    // Private constructor to prevent instantiation from outside
+    private SqlDatabaseManager(string connectionString)
     {
-        private static SqlDatabaseManager _instance;
-        private static readonly object _lock = new object();
-        private SqlConnection _connection;
+        _connection = new SqlConnection(connectionString);
+    }
 
-        private SqlDatabaseManager(string server, string database, string username, string password)
-        {
-            var connectionString = $"Server={server};Database={database};User Id={username};Password={password};";
-            _connection = new SqlConnection(connectionString);
-            _connection.Open(); 
-        }
-
-        public static SqlDatabaseManager GetInstance(string server, string database, string username, string password)
+    // Singleton instance property
+    public static SqlDatabaseManager GetInstance(string serverName, string databaseName, string userName, string password)
+    {
+        lock (_lock)  // Ensure thread safety
         {
             if (_instance == null)
             {
-                lock (_lock)  
-                {
-                    if (_instance == null)
-                    {
-                        _instance = new SqlDatabaseManager(server, database, username, password);
-                    }
-                }
+                string connectionString = $"Server={serverName};Database={databaseName};User Id={userName};Password={password};";
+                _instance = new SqlDatabaseManager(connectionString);
             }
             return _instance;
         }
+    }
 
-        public void ExecuteSelectQuery(string query, List<SqlParameter> parameters)
+    // Singleton instance method with a configuration file
+    public static SqlDatabaseManager GetInstanceFromFile(string configFilePath)
+    {
+        lock (_lock)  // Ensure thread safety
         {
-            using (SqlCommand cmd = new SqlCommand(query, _connection))
+            if (_instance == null)
             {
-                if (parameters != null)
-                {
-                    cmd.Parameters.AddRange(parameters.ToArray());
-                }
+                if (!File.Exists(configFilePath))
+                    throw new FileNotFoundException("Configuration file not found");
 
-                using (SqlDataReader reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                       
-                    }
-                }
+                var lines = File.ReadAllLines(configFilePath);
+                string serverName = lines[0];
+                string databaseName = lines[1];
+                string userName = lines[2];
+                string password = lines[3];
+
+                string connectionString = $"Server={serverName};Database={databaseName};User Id={userName};Password={password};";
+                _instance = new SqlDatabaseManager(connectionString);
+            }
+            return _instance;
+        }
+    }
+
+    // Bind SQL parameters to the SQL command
+    private bool BindParameters(SqlCommand command, List<SqlParameter> parameters)
+    {
+        try
+        {
+            foreach (var parameter in parameters)
+            {
+                command.Parameters.Add(parameter);
+            }
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    // Execute a SELECT query
+    public DataTable ExecuteSelectQuery(string sql, List<SqlParameter> parameters = null)
+    {
+        DataTable dataTable = new DataTable();
+        try
+        {
+            using (SqlCommand command = new SqlCommand(sql, _connection))
+            {
+                if (parameters != null && !BindParameters(command, parameters))
+                    throw new Exception("Error binding parameters");
+
+                SqlDataAdapter adapter = new SqlDataAdapter(command);
+                adapter.Fill(dataTable);
             }
         }
-
-      
-        public void CloseConnection()
+        catch (Exception ex)
         {
-            if (_connection != null && _connection.State == System.Data.ConnectionState.Open)
+            Console.WriteLine($"Error executing SELECT query: {ex.Message}");
+        }
+        return dataTable;
+    }
+
+    // Execute an INSERT query
+    public int ExecuteInsertQuery(string sql, List<SqlParameter> parameters)
+    {
+        return ExecuteNonQuery(sql, parameters);
+    }
+
+    // Execute an UPDATE query
+    public int ExecuteUpdateQuery(string sql, List<SqlParameter> parameters)
+    {
+        return ExecuteNonQuery(sql, parameters);
+    }
+
+    // Execute a DELETE query
+    public int ExecuteDeleteQuery(string sql, List<SqlParameter> parameters)
+    {
+        return ExecuteNonQuery(sql, parameters);
+    }
+
+    // Generic function to execute non-query SQL commands (INSERT, UPDATE, DELETE)
+    private int ExecuteNonQuery(string sql, List<SqlParameter> parameters)
+    {
+        int affectedRows = 0;
+        try
+        {
+            using (SqlCommand command = new SqlCommand(sql, _connection))
             {
+                if (parameters != null && !BindParameters(command, parameters))
+                    throw new Exception("Error binding parameters");
+
+                _connection.Open();
+                affectedRows = command.ExecuteNonQuery();
                 _connection.Close();
             }
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error executing non-query: {ex.Message}");
+            if (_connection.State == ConnectionState.Open)
+                _connection.Close();
+        }
+        return affectedRows;
+    }
+
+    // Retrieve the SQL Server date
+    public DateTime GetSqlServerDate()
+    {
+        DateTime serverDate = DateTime.MinValue;
+        try
+        {
+            string sql = "SELECT GETDATE()";
+            using (SqlCommand command = new SqlCommand(sql, _connection))
+            {
+                _connection.Open();
+                serverDate = (DateTime)command.ExecuteScalar();
+                _connection.Close();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error retrieving server date: {ex.Message}");
+            if (_connection.State == ConnectionState.Open)
+                _connection.Close();
+        }
+        return serverDate;
+    }
+
+    // Dispose method to free resources
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    // Protected Dispose method
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                if (_connection != null)
+                {
+                    _connection.Dispose();
+                    _connection = null;
+                }
+            }
+
+            _disposed = true;
+        }
+    }
+
+    // Destructor to ensure cleanup of unmanaged resources
+    ~SqlDatabaseManager()
+    {
+        Dispose(false);
     }
 }
