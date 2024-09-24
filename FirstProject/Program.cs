@@ -1,22 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows.Forms;
+﻿using ConsoleApp7;
 
-namespace FirstProject
+class Program
 {
-    internal static class Program
+    static void Main(string[] args)
     {
-        /// <summary>
-        /// The main entry point for the application.
-        /// </summary>
-        [STAThread]
-        static void Main()
-        {
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Form1());
-        }
+        Database db = new Database();
+
+        DatabaseConnectionParameters dbParams = new DatabaseConnectionParameters(
+            "myServer", "myDatabase", "myUser", "myPassword"
+        );
+
+        string filePath = "connection_params.STD";
+        db.SaveConnectionString(filePath, dbParams);
+
+        db.LoadConnectionString(filePath);
+        Console.WriteLine("Connection String: " + db.GetConnectionString());
     }
 }
