@@ -1,1 +1,10 @@
-
+namespace Core.Framework.DataBase
+{
+    internal class DatabaseConfig
+    {
+        public object ServerName { get; internal set; }
+        public object DatabaseName { get; internal set; }
+        public object UserName { get; internal set; }
+        public object Password { get; internal set; }
+    }
+}
