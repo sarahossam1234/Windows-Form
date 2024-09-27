@@ -1,45 +1,36 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Core.Framework.DataBase;
+using System;
+using System.IO;
 
-namespace ConsoleApp7
+namespace FirstProject
 {
-    public class Database
+    internal class Database
     {
-        private string _connectionString;
-        private GenericSerializer<DatabaseConnectionParameters> _serializer;
+        private DatabaseConnectionParameters _dbParams;
 
         public Database()
         {
-            _serializer = new GenericSerializer<DatabaseConnectionParameters>();
         }
-
-        public void LoadConnectionString(string filePath)
+        internal string GetConnectionString()
         {
-            if (!filePath.EndsWith(".STD"))
+            if (_dbParams == null)
             {
-                throw new InvalidOperationException("File must have a .STD extension.");
+                throw new InvalidOperationException("Database connection parameters are not loaded.");
             }
-
-            DatabaseConnectionParameters parameters = _serializer.ReadObjectData(filePath);
-            _connectionString = parameters.GetConnectionString();
+            return _dbParams.GetConnectionString();
         }
 
-        public void SaveConnectionString(string filePath, DatabaseConnectionParameters parameters)
+        internal void LoadConnectionString(string filePath)
         {
-            if (!filePath.EndsWith(".STD"))
-            {
-                throw new InvalidOperationException("File must have a .STD extension.");
-            }
-
-            _serializer.SaveObjectData(filePath, parameters);
+           
+            GenericSerializer<DatabaseConnectionParameters> serializer = new GenericSerializer<DatabaseConnectionParameters>();
+            _dbParams = serializer.Deserialize(filePath);
         }
 
-        public string GetConnectionString()
+        internal void SaveConnectionString(string filePath, DatabaseConnectionParameters dbParams)
         {
-            return _connectionString;
+            GenericSerializer<DatabaseConnectionParameters> serializer = new GenericSerializer<DatabaseConnectionParameters>();
+            serializer.SaveObjectData(filePath, dbParams);
         }
     }
 }
