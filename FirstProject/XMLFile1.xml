@@ -1,1 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DatabaseConnectionParameters>
+	<ServerName>testServer</ServerName>
+	<DatabaseName>testDatabase</DatabaseName>
+	<UserName>testUser</UserName>
+	<Password>testPassword</Password>
+</DatabaseConnectionParameters>
+
 
