@@ -5,7 +5,6 @@ using System.Data.SqlClient;
 using System.IO;
 using Core.Framework.DataBase;
 
-
 namespace Core.Framework.DataBase
 {
     public class SqlDatabaseManager : IDisposable
@@ -22,149 +21,54 @@ namespace Core.Framework.DataBase
 
         public static SqlDatabaseManager GetInstanceFromFile(string configFilePath)
         {
-            lock (_lock)  // Ensure thread safety
+            lock (_lock) 
             {
                 if (_instance == null)
                 {
                     if (!File.Exists(configFilePath))
                         throw new FileNotFoundException("Configuration file not found");
 
-                    var serializer = new GenericSerializer<DatabaseConnectionParameters>();
+                    
+                    byte[] key = Convert.FromBase64String("your-base64-key-here");  
+                    byte[] iv = Convert.FromBase64String("your-base64-iv-here");    
+
+                    
+                    var serializer = new GenericSerializer<DatabaseConnectionParameters>(key, iv);
                     DatabaseConnectionParameters dbConfig = serializer.Deserialize(configFilePath);
-                  
 
                     if (dbConfig == null)
                         throw new Exception("Failed to deserialize database configuration");
 
+                    
                     string connectionString = $"Server={dbConfig.ServerName};Database={dbConfig.DatabaseName};User Id={dbConfig.UserName};Password={dbConfig.Password};";
                     _instance = new SqlDatabaseManager(connectionString);
                 }
                 return _instance;
             }
         }
-        private bool BindParameters(SqlCommand command, List<SqlParameter> parameters)
-        {
-            try
-            {
-                if (parameters != null)
-                {
-                    foreach (var parameter in parameters)
-                    {
-                        command.Parameters.Add(parameter);
-                    }
-                }
-                return true;
-            }
-            catch (Exception)
-            {
-                return false;
-            }
-        }
-        public DataTable ExecuteSelectQuery(string sql, List<SqlParameter> parameters = null)
-        {
-            DataTable dataTable = new DataTable();
-            try
-            {
-                using (SqlCommand command = new SqlCommand(sql, _connection))
-                {
-                    if (!BindParameters(command, parameters))
-                        throw new Exception("Error binding parameters");
 
-                    SqlDataAdapter adapter = new SqlDataAdapter(command);
-                    adapter.Fill(dataTable);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error executing SELECT query: {ex.Message}");
-            }
-            return dataTable;
-        }
-        private int ExecuteNonQuery(string sql, List<SqlParameter> parameters)
+        private void BindParameters(SqlCommand command, List<SqlParameter> parameters)
         {
-            int affectedRows = 0;
-            try
-            {
-                using (SqlCommand command = new SqlCommand(sql, _connection))
-                {
-                    if (!BindParameters(command, parameters))
-                        throw new Exception("Error binding parameters");
+            if (parameters == null) return;
 
-                    _connection.Open();
-                    affectedRows = command.ExecuteNonQuery();
-                }
-            }
-            catch (Exception ex)
+            foreach (var parameter in parameters)
             {
-                Console.WriteLine($"Error executing non-query: {ex.Message}");
+                command.Parameters.Add(parameter);
             }
-            finally
-            {
-                if (_connection.State == ConnectionState.Open)
-                    _connection.Close();
-            }
-            return affectedRows;
         }
 
-        public int ExecuteInsertQuery(string sql, List<SqlParameter> parameters)
+        private void OpenConnection()
         {
-            return ExecuteNonQuery(sql, parameters);
+            if (_connection.State != ConnectionState.Open)
+            {
+                _connection.Open();
+            }
         }
 
-        public int ExecuteUpdateQuery(string sql, List<SqlParameter> parameters)
-        {
-            return ExecuteNonQuery(sql, parameters);
-        }
-
-        public int ExecuteDeleteQuery(string sql, List<SqlParameter> parameters)
-        {
-            return ExecuteNonQuery(sql, parameters);
-        }
-        public DateTime GetSqlServerDate()
-        {
-            DateTime serverDate = DateTime.MinValue;
-            try
-            {
-                string sql = "SELECT GETDATE()";
-                using (SqlCommand command = new SqlCommand(sql, _connection))
-                {
-                    _connection.Open();
-                    serverDate = (DateTime)command.ExecuteScalar();
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error retrieving server date: {ex.Message}");
-            }
-            finally
-            {
-                if (_connection.State == ConnectionState.Open)
-                    _connection.Close();
-            }
-            return serverDate;
-        }
         public void Dispose()
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_disposed)
-            {
-                if (disposing)
-                {
-                    _connection?.Dispose();
-                    _connection = null;
-                }
-
-                _disposed = true;
-            }
-        }
-
-        ~SqlDatabaseManager()
-        {
-            Dispose(false);
+            throw new NotImplementedException();
         }
     }
 }
+                
