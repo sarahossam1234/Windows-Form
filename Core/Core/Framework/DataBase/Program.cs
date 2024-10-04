@@ -1,13 +1,27 @@
-﻿using System;
+﻿using Exception_Log;
+using System;
 
-namespace ConsoleApp10
+class Program
 {
-    class Program
+    static void Main(string[] args)
     {
-        static void Main(string[] args)
+        try
         {
-            var smtpSender = new SMTPSender(); // This should now recognize SMTPSender
-            // Use smtpSender to send emails or get configurations
+            
+            ExceptionLogFactory logFactory = new ExceptionLogFactory(LogType.File, "error.log");
+            logFactory.LogException(new Exception("Sample exception"));
+
+            string randomString = ExtensionHelper.GenerateRandomString(RandomType.AlphaNumeric, 10);
+            Console.WriteLine("Generated Random String: " + randomString);
+
+            DateTime date = ExtensionHelper.ConvertToDate("05/10/2024");
+            Console.WriteLine("Converted Date: " + date);
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("An error occurred: " + ex.Message);
         }
     }
 }
+
